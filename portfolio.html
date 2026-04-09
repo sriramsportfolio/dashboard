@@ -6,262 +6,257 @@
 <title>Portfolio Dashboard</title>
 
 <style>
-    body {
-        font-family: Arial, sans-serif;
-        margin: 0;
-        background: #f4f6f8;
-        color: #333;
-    }
+body {
+    font-family: Arial;
+    margin: 0;
+    background: #0b1220;
+    color: white;
+}
 
-    header {
-        background: #1f4e79;
-        color: white;
-        padding: 15px;
-        text-align: center;
-        font-size: 20px;
-        font-weight: bold;
-    }
+header {
+    background: #111827;
+    padding: 15px;
+    font-size: 22px;
+}
 
-    .container {
-        padding: 20px;
-        max-width: 1200px;
-        margin: auto;
-    }
+.container {
+    padding: 20px;
+}
 
-    .grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 15px;
-        margin-bottom: 20px;
-    }
+.card {
+    background: #111827;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+}
 
-    .card {
-        background: white;
-        padding: 15px;
-        border-radius: 10px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        text-align: center;
-    }
+input, select {
+    padding: 8px;
+    margin: 5px;
+    border-radius: 6px;
+    border: none;
+}
 
-    .card h3 {
-        margin: 0;
-        font-size: 14px;
-        color: #777;
-    }
+button {
+    padding: 8px 12px;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
 
-    .card p {
-        font-size: 18px;
-        margin: 5px 0 0;
-        font-weight: bold;
-    }
+button:hover {
+    background: #1d4ed8;
+}
 
-    form {
-        background: white;
-        padding: 15px;
-        border-radius: 10px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
 
-    input {
-        padding: 8px;
-        margin: 5px;
-        width: calc(20% - 12px);
-    }
+th, td {
+    padding: 10px;
+    border-bottom: 1px solid #1f2937;
+    text-align: center;
+}
 
-    .alloc input {
-        width: calc(19% - 10px);
-    }
+th {
+    background: #0f172a;
+}
 
-    button {
-        padding: 10px 15px;
-        background: #1f4e79;
-        color: white;
-        border: none;
-        cursor: pointer;
-        margin-top: 10px;
-    }
+.positive { color: lightgreen; }
+.negative { color: red; }
 
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        background: white;
-        border-radius: 10px;
-        overflow: hidden;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
-
-    th, td {
-        padding: 10px;
-        border-bottom: 1px solid #eee;
-        text-align: center;
-        font-size: 13px;
-    }
-
-    th {
-        background: #f0f0f0;
-    }
+.grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}
 </style>
 </head>
 
 <body>
 
-<header>My Portfolio Dashboard</header>
+<header>📊 Portfolio Dashboard</header>
 
 <div class="container">
 
-    <!-- DASHBOARD -->
+<!-- INPUT -->
+<div class="card">
+    <h3>Add Investment</h3>
+    <input id="ticker" placeholder="Ticker (AAPL)">
+    <input id="qty" type="number" placeholder="Qty">
+    <input id="buy" type="number" placeholder="Buy Price">
+    <input id="date" type="date">
+
+    <select id="asset">
+        <option>US Equity</option>
+        <option>Bonds</option>
+        <option>International</option>
+        <option>Cash</option>
+        <option>Multi Asset</option>
+    </select>
+
+    <button onclick="addInvestment()">Add</button>
+</div>
+
+<!-- SUMMARY -->
+<div class="card">
+    <h3>Summary</h3>
     <div class="grid">
-        <div class="card">
-            <h3>Total Value</h3>
-            <p id="totalValue">$0</p>
-        </div>
-        <div class="card">
-            <h3>Total Cost</h3>
-            <p id="totalCost">$0</p>
-        </div>
-        <div class="card">
-            <h3>Gain / Loss</h3>
-            <p id="totalGain">$0</p>
-        </div>
-        <div class="card">
-            <h3>% Return</h3>
-            <p id="totalReturn">0%</p>
-        </div>
+        <div>Total Value<br><span id="totalValue">$0</span></div>
+        <div>Total Cost<br><span id="totalCost">$0</span></div>
+        <div>Gain/Loss<br><span id="totalGain">$0</span></div>
+        <div>Holdings<br><span id="count">0</span></div>
     </div>
+</div>
 
-    <!-- INPUT FORM -->
-    <form id="portfolioForm">
-        <input placeholder="Ticker" id="ticker" required>
-        <input placeholder="Name" id="name" required>
-        <input placeholder="Qty" id="qty" type="number" step="any" required>
-        <input placeholder="Buy Price" id="buy" type="number" step="any" required>
-        <input placeholder="Current Price" id="price" type="number" step="any" required>
-        <input placeholder="Date" id="date" type="date">
+<button onclick="updatePrices()">🔄 Refresh Live Prices</button>
+<button onclick="clearAll()">🗑 Reset</button>
 
-        <br>
-
-        <h4>Dollar Allocation (must sum to current value conceptually)</h4>
-
-        <div class="alloc">
-            <input placeholder="US Equity $" id="us">
-            <input placeholder="Mid/Small US $" id="usmc">
-            <input placeholder="Bonds $" id="bonds">
-            <input placeholder="International $" id="intl">
-            <input placeholder="Cash $" id="cash">
-        </div>
-
-        <button type="submit">Add Investment</button>
-    </form>
-
-    <!-- TABLE -->
-    <table>
-        <thead>
-            <tr>
-                <th>Ticker</th>
-                <th>Name</th>
-                <th>Qty</th>
-                <th>Buy</th>
-                <th>Price</th>
-                <th>Value</th>
-                <th>Cost</th>
-                <th>Gain</th>
-                <th>%</th>
-                <th>US Eq</th>
-                <th>Bonds</th>
-                <th>Intl</th>
-                <th>Cash</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody id="tableBody"></tbody>
-    </table>
+<!-- TABLE -->
+<div class="card">
+<table>
+<thead>
+<tr>
+<th>Ticker</th>
+<th>Qty</th>
+<th>Buy</th>
+<th>Live</th>
+<th>Value</th>
+<th>Gain</th>
+<th>Asset</th>
+<th>Delete</th>
+</tr>
+</thead>
+<tbody id="table"></tbody>
+</table>
+</div>
 
 </div>
 
 <script>
+
+// STORAGE
 let portfolio = JSON.parse(localStorage.getItem("portfolio")) || [];
 
-document.getElementById("portfolioForm").addEventListener("submit", function(e){
-    e.preventDefault();
-
-    let qty = parseFloat(document.getElementById("qty").value);
-    let buy = parseFloat(document.getElementById("buy").value);
-    let price = parseFloat(document.getElementById("price").value);
-
-    let item = {
-        ticker: document.getElementById("ticker").value,
-        name: document.getElementById("name").value,
-        qty: qty,
-        buy: buy,
-        price: price,
-        date: document.getElementById("date").value,
-
-        us: parseFloat(document.getElementById("us").value) || 0,
-        usmc: parseFloat(document.getElementById("usmc").value) || 0,
-        bonds: parseFloat(document.getElementById("bonds").value) || 0,
-        intl: parseFloat(document.getElementById("intl").value) || 0,
-        cash: parseFloat(document.getElementById("cash").value) || 0
-    };
-
-    portfolio.push(item);
+function save() {
     localStorage.setItem("portfolio", JSON.stringify(portfolio));
-
-    this.reset();
-    render();
-});
-
-function deleteItem(i){
-    portfolio.splice(i,1);
-    localStorage.setItem("portfolio", JSON.stringify(portfolio));
-    render();
 }
 
-function render(){
-    let body = document.getElementById("tableBody");
-    body.innerHTML = "";
+// ADD
+function addInvestment() {
+    let t = document.getElementById("ticker").value.toUpperCase();
+    let q = parseFloat(document.getElementById("qty").value);
+    let b = parseFloat(document.getElementById("buy").value);
+    let d = document.getElementById("date").value;
+    let a = document.getElementById("asset").value;
 
+    if (!t || !q || !b) {
+        alert("Enter required fields");
+        return;
+    }
+
+    portfolio.push({ ticker: t, qty: q, buy: b, date: d, asset: a });
+
+    save();
+    render();
+    updatePrices();
+}
+
+// DELETE
+function removeItem(i) {
+    portfolio.splice(i,1);
+    save();
+    render();
+    updatePrices();
+}
+
+// 🔥 FIXED PRICE FUNCTION (WORKS LOCALLY)
+async function getPrice(symbol) {
+    try {
+        let url = `https://api.allorigins.win/raw?url=https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbol}`;
+        let res = await fetch(url);
+        let data = await res.json();
+
+        if (!data.quoteResponse.result.length) return null;
+
+        return data.quoteResponse.result[0].regularMarketPrice;
+    } catch (e) {
+        console.log("Error:", symbol);
+        return null;
+    }
+}
+
+// UPDATE PRICES
+async function updatePrices() {
     let totalValue = 0;
     let totalCost = 0;
 
-    portfolio.forEach((p, i) => {
-        let value = p.qty * p.price;
-        let cost = p.qty * p.buy;
-        let gain = value - cost;
-        let pct = (gain / cost) * 100;
+    for (let item of portfolio) {
+        let price = await getPrice(item.ticker);
+        item.live = price || 0;
 
-        totalValue += value;
-        totalCost += cost;
+        item.value = item.qty * item.live;
+        item.cost = item.qty * item.buy;
 
-        body.innerHTML += `
-        <tr>
-            <td>${p.ticker}</td>
-            <td>${p.name}</td>
-            <td>${p.qty}</td>
-            <td>${p.buy}</td>
-            <td>${p.price}</td>
-            <td>${value.toFixed(2)}</td>
-            <td>${cost.toFixed(2)}</td>
-            <td>${gain.toFixed(2)}</td>
-            <td>${pct.toFixed(2)}%</td>
-            <td>${p.us}</td>
-            <td>${p.bonds}</td>
-            <td>${p.intl}</td>
-            <td>${p.cash}</td>
-            <td><button onclick="deleteItem(${i})">X</button></td>
-        </tr>`;
-    });
+        totalValue += item.value;
+        totalCost += item.cost;
+    }
+
+    save();
+    render();
 
     let gain = totalValue - totalCost;
-    let pct = (gain / totalCost) * 100;
 
     document.getElementById("totalValue").innerText = "$" + totalValue.toFixed(2);
     document.getElementById("totalCost").innerText = "$" + totalCost.toFixed(2);
-    document.getElementById("totalGain").innerText = "$" + gain.toFixed(2);
-    document.getElementById("totalReturn").innerText = pct.toFixed(2) + "%";
+
+    let g = document.getElementById("totalGain");
+    g.innerText = "$" + gain.toFixed(2);
+    g.className = gain >= 0 ? "positive" : "negative";
+
+    document.getElementById("count").innerText = portfolio.length;
 }
 
+// RENDER
+function render() {
+    let table = document.getElementById("table");
+    table.innerHTML = "";
+
+    portfolio.forEach((p, i) => {
+        let gain = (p.value || 0) - (p.cost || 0);
+
+        table.innerHTML += `
+        <tr>
+            <td>${p.ticker}</td>
+            <td>${p.qty}</td>
+            <td>$${p.buy}</td>
+            <td>$${(p.live || 0).toFixed(2)}</td>
+            <td>$${(p.value || 0).toFixed(2)}</td>
+            <td class="${gain>=0?'positive':'negative'}">$${gain.toFixed(2)}</td>
+            <td>${p.asset}</td>
+            <td><button onclick="removeItem(${i})">X</button></td>
+        </tr>`;
+    });
+}
+
+// CLEAR
+function clearAll() {
+    if(confirm("Clear all data?")) {
+        portfolio = [];
+        save();
+        render();
+        updatePrices();
+    }
+}
+
+// INIT
 render();
+updatePrices();
+
 </script>
 
 </body>
