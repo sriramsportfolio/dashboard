@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Portfolio Dashboard</title>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        background: #f4f6f8;
+        color: #333;
+    }
+
+    header {
+        background: #1f4e79;
+        color: white;
+        padding: 15px;
+        text-align: center;
+        font-size: 20px;
+        font-weight: bold;
+    }
+
+    .container {
+        padding: 20px;
+        max-width: 1200px;
+        margin: auto;
+    }
+
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .card {
+        background: white;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+
+    .card h3 {
+        margin: 0;
+        font-size: 14px;
+        color: #777;
+    }
+
+    .card p {
+        font-size: 18px;
+        margin: 5px 0 0;
+        font-weight: bold;
+    }
+
+    form {
+        background: white;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    input {
+        padding: 8px;
+        margin: 5px;
+        width: calc(20% - 12px);
+    }
+
+    .alloc input {
+        width: calc(19% - 10px);
+    }
+
+    button {
+        padding: 10px 15px;
+        background: #1f4e79;
+        color: white;
+        border: none;
+        cursor: pointer;
+        margin-top: 10px;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    th, td {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+        text-align: center;
+        font-size: 13px;
+    }
+
+    th {
+        background: #f0f0f0;
+    }
+</style>
+</head>
+
+<body>
+
+<header>My Portfolio Dashboard</header>
+
+<div class="container">
+
+    <!-- DASHBOARD -->
+    <div class="grid">
+        <div class="card">
+            <h3>Total Value</h3>
+            <p id="totalValue">$0</p>
+        </div>
+        <div class="card">
+            <h3>Total Cost</h3>
+            <p id="totalCost">$0</p>
+        </div>
+        <div class="card">
+            <h3>Gain / Loss</h3>
+            <p id="totalGain">$0</p>
+        </div>
+        <div class="card">
+            <h3>% Return</h3>
+            <p id="totalReturn">0%</p>
+        </div>
+    </div>
+
+    <!-- INPUT FORM -->
+    <form id="portfolioForm">
+        <input placeholder="Ticker" id="ticker" required>
+        <input placeholder="Name" id="name" required>
+        <input placeholder="Qty" id="qty" type="number" step="any" required>
+        <input placeholder="Buy Price" id="buy" type="number" step="any" required>
+        <input placeholder="Current Price" id="price" type="number" step="any" required>
+        <input placeholder="Date" id="date" type="date">
+
+        <br>
+
+        <h4>Dollar Allocation (must sum to current value conceptually)</h4>
+
+        <div class="alloc">
+            <input placeholder="US Equity $" id="us">
+            <input placeholder="Mid/Small US $" id="usmc">
+            <input placeholder="Bonds $" id="bonds">
+            <input placeholder="International $" id="intl">
+            <input placeholder="Cash $" id="cash">
+        </div>
+
+        <button type="submit">Add Investment</button>
+    </form>
+
+    <!-- TABLE -->
+    <table>
+        <thead>
+            <tr>
+                <th>Ticker</th>
+                <th>Name</th>
+                <th>Qty</th>
+                <th>Buy</th>
+                <th>Price</th>
+                <th>Value</th>
+                <th>Cost</th>
+                <th>Gain</th>
+                <th>%</th>
+                <th>US Eq</th>
+                <th>Bonds</th>
+                <th>Intl</th>
+                <th>Cash</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+
+</div>
+
+<script>
+let portfolio = JSON.parse(localStorage.getItem("portfolio")) || [];
+
+document.getElementById("portfolioForm").addEventListener("submit", function(e){
+    e.preventDefault();
+
+    let qty = parseFloat(document.getElementById("qty").value);
+    let buy = parseFloat(document.getElementById("buy").value);
+    let price = parseFloat(document.getElementById("price").value);
+
+    let item = {
+        ticker: document.getElementById("ticker").value,
+        name: document.getElementById("name").value,
+        qty: qty,
+        buy: buy,
+        price: price,
+        date: document.getElementById("date").value,
+
+        us: parseFloat(document.getElementById("us").value) || 0,
+        usmc: parseFloat(document.getElementById("usmc").value) || 0,
+        bonds: parseFloat(document.getElementById("bonds").value) || 0,
+        intl: parseFloat(document.getElementById("intl").value) || 0,
+        cash: parseFloat(document.getElementById("cash").value) || 0
+    };
+
+    portfolio.push(item);
+    localStorage.setItem("portfolio", JSON.stringify(portfolio));
+
+    this.reset();
+    render();
+});
+
+function deleteItem(i){
+    portfolio.splice(i,1);
+    localStorage.setItem("portfolio", JSON.stringify(portfolio));
+    render();
+}
+
+function render(){
+    let body = document.getElementById("tableBody");
+    body.innerHTML = "";
+
+    let totalValue = 0;
+    let totalCost = 0;
+
+    portfolio.forEach((p, i) => {
+        let value = p.qty * p.price;
+        let cost = p.qty * p.buy;
+        let gain = value - cost;
+        let pct = (gain / cost) * 100;
+
+        totalValue += value;
+        totalCost += cost;
+
+        body.innerHTML += `
+        <tr>
+            <td>${p.ticker}</td>
+            <td>${p.name}</td>
+            <td>${p.qty}</td>
+            <td>${p.buy}</td>
+            <td>${p.price}</td>
+            <td>${value.toFixed(2)}</td>
+            <td>${cost.toFixed(2)}</td>
+            <td>${gain.toFixed(2)}</td>
+            <td>${pct.toFixed(2)}%</td>
+            <td>${p.us}</td>
+            <td>${p.bonds}</td>
+            <td>${p.intl}</td>
+            <td>${p.cash}</td>
+            <td><button onclick="deleteItem(${i})">X</button></td>
+        </tr>`;
+    });
+
+    let gain = totalValue - totalCost;
+    let pct = (gain / totalCost) * 100;
+
+    document.getElementById("totalValue").innerText = "$" + totalValue.toFixed(2);
+    document.getElementById("totalCost").innerText = "$" + totalCost.toFixed(2);
+    document.getElementById("totalGain").innerText = "$" + gain.toFixed(2);
+    document.getElementById("totalReturn").innerText = pct.toFixed(2) + "%";
+}
+
+render();
+</script>
+
+</body>
+</html>
