@@ -8,7 +8,7 @@
 body { font-family: Arial; background:#0b1220; color:white; padding:20px;}
 input, button { padding:8px; margin:5px; }
 table { width:100%; margin-top:15px; border-collapse: collapse;}
-td, th { padding:10px; border-bottom:1px solid #333;}
+td, th { padding:10px; border-bottom:1px solid #333; text-align:center;}
 .positive { color:lightgreen; }
 .negative { color:red; }
 </style>
@@ -25,85 +25,111 @@ td, th { padding:10px; border-bottom:1px solid #333;}
 
 <button onclick="update()">🔄 Refresh Prices</button>
 
-<h3>Total Value: <span id="tv">$0</span></h3>
-<h3>Total Gain: <span id="tg">$0</span></h3>
+<h3>Total Portfolio Value: <span id="tv">$0</span></h3>
+<h3>Total Gain/Loss: <span id="tg">$0</span></h3>
 
 <table>
 <thead>
 <tr>
-<th>Ticker</th><th>Qty</th><th>Buy</th><th>Live</th><th>Value</th><th>Gain</th>
+<th>Ticker</th>
+<th>Qty</th>
+<th>Buy Price</th>
+<th>Cost Basis</th>
+<th>Live Price</th>
+<th>Current Value</th>
+<th>Gain/Loss</th>
 </tr>
 </thead>
+
 <tbody id="rows"></tbody>
 </table>
 
 <script>
 
-const API_KEY = "d7c2odpr01quh9fca6q0d7c2odpr01quh9fca6qg";
+const API_KEY = "PASTE_YOUR_KEY_HERE";
 
-let p = JSON.parse(localStorage.getItem("p")) || [];
+let portfolio = JSON.parse(localStorage.getItem("portfolio")) || [];
 
-function save(){ localStorage.setItem("p", JSON.stringify(p)); }
+function save(){
+    localStorage.setItem("portfolio", JSON.stringify(portfolio));
+}
 
+// ADD STOCK
 function add(){
     let t = ticker.value.toUpperCase();
     let q = parseFloat(qty.value);
     let b = parseFloat(buy.value);
 
-    if(!t || !q || !b) return;
+    if(!t || !q || !b) {
+        alert("Enter all fields");
+        return;
+    }
 
-    p.push({t,q,b});
+    portfolio.push({t,q,b});
     save();
     render();
 }
 
-async function price(sym){
+// FETCH PRICE
+async function getPrice(sym){
     try{
-        let r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${sym}&token=${API_KEY}`);
-        let d = await r.json();
-        return d.c; // current price
+        let res = await fetch(`https://finnhub.io/api/v1/quote?symbol=${sym}&token=${API_KEY}`);
+        let data = await res.json();
+        return data.c || 0;
     }catch{
         return 0;
     }
 }
 
+// UPDATE PRICES + CALCULATIONS
 async function update(){
-    let tv=0, tc=0;
 
-    for(let i of p){
-        let pr = await price(i.t);
-        i.live = pr;
+    let totalValue = 0;
+    let totalCost = 0;
 
-        i.val = i.q * pr;
-        i.cost = i.q * i.b;
+    for(let item of portfolio){
 
-        tv += i.val;
-        tc += i.cost;
+        let price = await getPrice(item.t);
+
+        item.live = price;
+        item.cost = item.q * item.b;
+        item.value = item.q * price;
+        item.gain = item.value - item.cost;
+
+        totalValue += item.value;
+        totalCost += item.cost;
     }
 
+    let totalGain = totalValue - totalCost;
+
+    document.getElementById("tv").innerText = "$" + totalValue.toFixed(2);
+
+    let tg = document.getElementById("tg");
+    tg.innerText = "$" + totalGain.toFixed(2);
+    tg.className = totalGain >= 0 ? "positive" : "negative";
+
+    save();
     render();
-
-    let g = tv - tc;
-
-    tvEl.innerText = "$"+tv.toFixed(2);
-    tg.innerText = "$"+g.toFixed(2);
-    tg.className = g>=0 ? "positive":"negative";
 }
 
+// RENDER TABLE
 function render(){
-    rows.innerHTML="";
 
-    p.forEach(i=>{
-        let g = (i.val||0)-(i.cost||0);
+    rows.innerHTML = "";
+
+    portfolio.forEach(item => {
 
         rows.innerHTML += `
         <tr>
-        <td>${i.t}</td>
-        <td>${i.q}</td>
-        <td>$${i.b}</td>
-        <td>$${(i.live||0).toFixed(2)}</td>
-        <td>$${(i.val||0).toFixed(2)}</td>
-        <td class="${g>=0?'positive':'negative'}">$${g.toFixed(2)}</td>
+            <td>${item.t}</td>
+            <td>${item.q}</td>
+            <td>$${item.b.toFixed(2)}</td>
+            <td>$${(item.cost || 0).toFixed(2)}</td>
+            <td>$${(item.live || 0).toFixed(2)}</td>
+            <td>$${(item.value || 0).toFixed(2)}</td>
+            <td class="${item.gain >= 0 ? 'positive' : 'negative'}">
+                $${(item.gain || 0).toFixed(2)}
+            </td>
         </tr>`;
     });
 }
