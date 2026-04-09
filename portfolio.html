@@ -1,261 +1,114 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta charset="UTF-8">
 <title>Portfolio Dashboard</title>
 
 <style>
-body {
-    font-family: Arial;
-    margin: 0;
-    background: #0b1220;
-    color: white;
-}
-
-header {
-    background: #111827;
-    padding: 15px;
-    font-size: 22px;
-}
-
-.container {
-    padding: 20px;
-}
-
-.card {
-    background: #111827;
-    padding: 15px;
-    border-radius: 10px;
-    margin-bottom: 15px;
-}
-
-input, select {
-    padding: 8px;
-    margin: 5px;
-    border-radius: 6px;
-    border: none;
-}
-
-button {
-    padding: 8px 12px;
-    background: #2563eb;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-}
-
-button:hover {
-    background: #1d4ed8;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 10px;
-}
-
-th, td {
-    padding: 10px;
-    border-bottom: 1px solid #1f2937;
-    text-align: center;
-}
-
-th {
-    background: #0f172a;
-}
-
-.positive { color: lightgreen; }
-.negative { color: red; }
-
-.grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-}
+body { font-family: Arial; background:#0b1220; color:white; padding:20px;}
+input, button { padding:8px; margin:5px; }
+table { width:100%; margin-top:15px; border-collapse: collapse;}
+td, th { padding:10px; border-bottom:1px solid #333;}
+.positive { color:lightgreen; }
+.negative { color:red; }
 </style>
 </head>
 
 <body>
 
-<header>📊 Portfolio Dashboard</header>
+<h2>📊 Portfolio</h2>
 
-<div class="container">
+<input id="ticker" placeholder="Ticker">
+<input id="qty" type="number" placeholder="Qty">
+<input id="buy" type="number" placeholder="Buy Price">
+<button onclick="add()">Add</button>
 
-<!-- INPUT -->
-<div class="card">
-    <h3>Add Investment</h3>
-    <input id="ticker" placeholder="Ticker (AAPL)">
-    <input id="qty" type="number" placeholder="Qty">
-    <input id="buy" type="number" placeholder="Buy Price">
-    <input id="date" type="date">
+<button onclick="update()">🔄 Refresh Prices</button>
 
-    <select id="asset">
-        <option>US Equity</option>
-        <option>Bonds</option>
-        <option>International</option>
-        <option>Cash</option>
-        <option>Multi Asset</option>
-    </select>
+<h3>Total Value: <span id="tv">$0</span></h3>
+<h3>Total Gain: <span id="tg">$0</span></h3>
 
-    <button onclick="addInvestment()">Add</button>
-</div>
-
-<!-- SUMMARY -->
-<div class="card">
-    <h3>Summary</h3>
-    <div class="grid">
-        <div>Total Value<br><span id="totalValue">$0</span></div>
-        <div>Total Cost<br><span id="totalCost">$0</span></div>
-        <div>Gain/Loss<br><span id="totalGain">$0</span></div>
-        <div>Holdings<br><span id="count">0</span></div>
-    </div>
-</div>
-
-<button onclick="updatePrices()">🔄 Refresh Live Prices</button>
-<button onclick="clearAll()">🗑 Reset</button>
-
-<!-- TABLE -->
-<div class="card">
 <table>
 <thead>
 <tr>
-<th>Ticker</th>
-<th>Qty</th>
-<th>Buy</th>
-<th>Live</th>
-<th>Value</th>
-<th>Gain</th>
-<th>Asset</th>
-<th>Delete</th>
+<th>Ticker</th><th>Qty</th><th>Buy</th><th>Live</th><th>Value</th><th>Gain</th>
 </tr>
 </thead>
-<tbody id="table"></tbody>
+<tbody id="rows"></tbody>
 </table>
-</div>
-
-</div>
 
 <script>
 
-// STORAGE
-let portfolio = JSON.parse(localStorage.getItem("portfolio")) || [];
+const API_KEY = "PASTE_YOUR_KEY_HERE";
 
-function save() {
-    localStorage.setItem("portfolio", JSON.stringify(portfolio));
-}
+let p = JSON.parse(localStorage.getItem("p")) || [];
 
-// ADD
-function addInvestment() {
-    let t = document.getElementById("ticker").value.toUpperCase();
-    let q = parseFloat(document.getElementById("qty").value);
-    let b = parseFloat(document.getElementById("buy").value);
-    let d = document.getElementById("date").value;
-    let a = document.getElementById("asset").value;
+function save(){ localStorage.setItem("p", JSON.stringify(p)); }
 
-    if (!t || !q || !b) {
-        alert("Enter required fields");
-        return;
-    }
+function add(){
+    let t = ticker.value.toUpperCase();
+    let q = parseFloat(qty.value);
+    let b = parseFloat(buy.value);
 
-    portfolio.push({ ticker: t, qty: q, buy: b, date: d, asset: a });
+    if(!t || !q || !b) return;
 
+    p.push({t,q,b});
     save();
     render();
-    updatePrices();
 }
 
-// DELETE
-function removeItem(i) {
-    portfolio.splice(i,1);
-    save();
-    render();
-    updatePrices();
-}
-
-// 🔥 FIXED PRICE FUNCTION (WORKS LOCALLY)
-async function getPrice(symbol) {
-    try {
-        let url = `https://api.allorigins.win/raw?url=https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbol}`;
-        let res = await fetch(url);
-        let data = await res.json();
-
-        if (!data.quoteResponse.result.length) return null;
-
-        return data.quoteResponse.result[0].regularMarketPrice;
-    } catch (e) {
-        console.log("Error:", symbol);
-        return null;
+async function price(sym){
+    try{
+        let r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${sym}&token=${API_KEY}`);
+        let d = await r.json();
+        return d.c; // current price
+    }catch{
+        return 0;
     }
 }
 
-// UPDATE PRICES
-async function updatePrices() {
-    let totalValue = 0;
-    let totalCost = 0;
+async function update(){
+    let tv=0, tc=0;
 
-    for (let item of portfolio) {
-        let price = await getPrice(item.ticker);
-        item.live = price || 0;
+    for(let i of p){
+        let pr = await price(i.t);
+        i.live = pr;
 
-        item.value = item.qty * item.live;
-        item.cost = item.qty * item.buy;
+        i.val = i.q * pr;
+        i.cost = i.q * i.b;
 
-        totalValue += item.value;
-        totalCost += item.cost;
+        tv += i.val;
+        tc += i.cost;
     }
 
-    save();
     render();
 
-    let gain = totalValue - totalCost;
+    let g = tv - tc;
 
-    document.getElementById("totalValue").innerText = "$" + totalValue.toFixed(2);
-    document.getElementById("totalCost").innerText = "$" + totalCost.toFixed(2);
-
-    let g = document.getElementById("totalGain");
-    g.innerText = "$" + gain.toFixed(2);
-    g.className = gain >= 0 ? "positive" : "negative";
-
-    document.getElementById("count").innerText = portfolio.length;
+    tvEl.innerText = "$"+tv.toFixed(2);
+    tg.innerText = "$"+g.toFixed(2);
+    tg.className = g>=0 ? "positive":"negative";
 }
 
-// RENDER
-function render() {
-    let table = document.getElementById("table");
-    table.innerHTML = "";
+function render(){
+    rows.innerHTML="";
 
-    portfolio.forEach((p, i) => {
-        let gain = (p.value || 0) - (p.cost || 0);
+    p.forEach(i=>{
+        let g = (i.val||0)-(i.cost||0);
 
-        table.innerHTML += `
+        rows.innerHTML += `
         <tr>
-            <td>${p.ticker}</td>
-            <td>${p.qty}</td>
-            <td>$${p.buy}</td>
-            <td>$${(p.live || 0).toFixed(2)}</td>
-            <td>$${(p.value || 0).toFixed(2)}</td>
-            <td class="${gain>=0?'positive':'negative'}">$${gain.toFixed(2)}</td>
-            <td>${p.asset}</td>
-            <td><button onclick="removeItem(${i})">X</button></td>
+        <td>${i.t}</td>
+        <td>${i.q}</td>
+        <td>$${i.b}</td>
+        <td>$${(i.live||0).toFixed(2)}</td>
+        <td>$${(i.val||0).toFixed(2)}</td>
+        <td class="${g>=0?'positive':'negative'}">$${g.toFixed(2)}</td>
         </tr>`;
     });
 }
 
-// CLEAR
-function clearAll() {
-    if(confirm("Clear all data?")) {
-        portfolio = [];
-        save();
-        render();
-        updatePrices();
-    }
-}
-
-// INIT
 render();
-updatePrices();
 
 </script>
 
